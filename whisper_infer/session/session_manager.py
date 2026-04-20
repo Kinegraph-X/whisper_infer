@@ -47,7 +47,7 @@ class SessionManager:
         for idx, pipeline in self.pipelines:
             self.orchestrator.stop_pipeline(idx)
 
-    def session_snapshot(self) -> SessionSnapshot:
+    def snapshot(self) -> SessionSnapshot:
         return SessionSnapshot(
             session_id=self.session.id,
             media_path=self.session.media_path,

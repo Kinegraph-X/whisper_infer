@@ -59,9 +59,9 @@ class WorkerManager:
         self.message_queues[name] = self.workers[name].print_queue
         self.on_success_cbs[name] = on_success
         self.on_failure_cbs[name] = on_failure
-        self.compeltion_threads[threading.Thread(
+        self.compeltion_threads[name] = threading.Thread(
             target=self.completion_loop, args = (name, ), daemon=True
-        )]
+        )
         self.workers[name].ctx.set_stopped("initial state")
 
     def subscribe_to_logs(self, name, cb):

@@ -1,7 +1,7 @@
 from typing import List
 import threading, subprocess
 from uuid import uuid4
-from whisper_infer.tasks import CancelPolicy, TaskState, Session
+from whisper_infer.tasks import Task, CancelPolicy, TaskState, Session
 from whisper_infer.events import LogEvent, EventType
 from pipeline import Pipeline, PipelineSnapshot, PipelineState, PipelineFailure
 import time
@@ -18,6 +18,10 @@ class PipelineOrchestrator:
         pipeline = Pipeline()
         self.pipelines.append(pipeline)
         return pipeline.id
+    
+    def add_task(self, pipeline_id : str, task : Task):
+        pipeline = next((p for p in self.pipelines if p.pipeline_id == pipeline_id), None)
+        pipeline.add_task(task)
 
     def start_pipeline(self, pipeline_id : str):
         pipeline = next((p for p in self.pipelines if p.pipeline_id == pipeline_id), None)

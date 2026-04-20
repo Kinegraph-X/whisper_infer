@@ -1,10 +1,12 @@
 from  whisper_infer.events import LogEvent, Enveloppe, EventType
 from whisper_infer.workers import WorkerManager
+from whisper_infer.session import SessionManager
 
 class StreamManager:
-    def __init__(self):
+    def __init__(self, session : SessionManager):
         self._sinks = []          # callables : CLI, WebSocket, fichier...
-        self._orchestrator = None  # référence for on demand snapshot
+        self._orchestrator = session.orchestrateur
+        self._session = session  # référence for on demand snapshot
 
     def attach_orchestrator(self, orchestrator):
         self._orchestrator = orchestrator
@@ -20,7 +22,7 @@ class StreamManager:
         envelope = Enveloppe(event=event)
         if event.type in (EventType.STATE_CHANGE, EventType.TASK_DONE, EventType.EARLY_EXIT):
             # enriched with current snapshot
-            envelope.snapshot = self._orchestrator.snapshot(event.worker)
+            envelope.snapshot = self._session.snapshot()
         
         for sink in self._sinks:
             sink(envelope)
