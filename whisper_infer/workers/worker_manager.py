@@ -1,6 +1,9 @@
 import sys, multiprocessing, threading
+from queue import deque
 from worker_logger import WorkerLogger
+from worker_status import WorkerStatus
 from multiprocessing import get_context
+from whisper_infer.tasks import PendingTask
 # if getattr(sys, 'frozen', False):
 
 # ctx = get_context('spawn')  # Explicitly get a new context with 'spawn'
@@ -16,12 +19,17 @@ from basic_worker import BasicWorker
 # curl -d "{\"name\" : \"server\"}" -H "Content-Type:application/json" -X POST http://localhost:3001/start_worker
 
 class WorkerManager:
-    def __init__(self, max_count = 4):
+    def __init__(self, session_id, max_count = 4):
+        self.session_id = None
         self.workers = {}
         # self.message_queues = {}
         self._message_queue = multiprocessing.Queue()
         self.on_log_cbs = {}
+        self.on_success_cbs = {}
+        self.on_failure_cbs = {}
+        self.completion_threads = {}
         self.max_count = max_count
+        self._pending: deque[PendingTask] = deque()
         self._dispatch_thread = threading.Thread(
             target=self._dispatch_loop, daemon=True
         )
@@ -34,18 +42,26 @@ class WorkerManager:
         if worker.context.state != required_state:
             raise RuntimeError(f"worker state mismatch {name} : state {worker.context.state.value}, expected {required_state.value}")
             
-    def add_worker(self, name, args_list, on_success : callable = None, on_log : callable = None, *args):
-        if len(self.workers) < self.max_count:
+    def add_worker(self, name, args_list, on_success : callable = None, on_failure : callable = None, on_log : callable = None, *args):
+        if len(self._running_workers()) >= self.max_count:
+            self._pending.append(PendingTask(name, args_list, on_success, on_failure))
+            return 
+        else:
             self.reset_worker_instance(name, args_list, on_success, *args)
             if on_log:
                 self.on_log_cbs[name] = on_log
-        else:
-            raise RuntimeError(f'unable to add a new worker : max count reached')
         return self.start_worker(name, *args)
 
-    def reset_worker_instance(self, name, args_list, on_success, *args):
-        self.workers[name] = BasicWorker(name, args_list, on_success, debug = cmd_line_args.debug, dist = cmd_line_args.dist)
+    def reset_worker_instance(self, name, args_list, on_success, on_failure, *args):
+        # allow passing serializable objects references
+        args_list = [str(part) for part in args_list]
+        self.workers[name] = BasicWorker(name, args_list, debug = cmd_line_args.debug, dist = cmd_line_args.dist)
         self.message_queues[name] = self.workers[name].print_queue
+        self.on_success_cbs[name] = on_success
+        self.on_failure_cbs[name] = on_failure
+        self.compeltion_threads[threading.Thread(
+            target=self.completion_loop, args = (name, ), daemon=True
+        )]
         self.workers[name].ctx.set_stopped("initial state")
 
     def subscribe_to_logs(self, name, cb):
@@ -59,7 +75,6 @@ class WorkerManager:
 
     def stop_worker(self, name):
         self._assert_transition(name, WorkerState.RUNNING)
-
         worker = self.workers[name]
         worker.terminate()
         worker.state = WorkerState.STOPPED
@@ -105,30 +120,33 @@ class WorkerManager:
                 messages.append(queue.get_nowait())
         except:
             pass
-        return {
-            "status": f"{status_string}",
-            "message_stack": messages
-        }
-    
-    # def react_on_msg(self):
-    #     while True:
-    #         for name, worker in self.workers:
-    #             cb = self.on_log_cbs[name]
-    #             if not cb:
-    #                 continue
-    #             if worker.queue_flag.wait(timeout = .1):
-    #                 cb(self.message_queues[name])
-    #                 worker.queue_flag.clear()
-
+        return WorkerStatus(f"{status_string}", messages)
     
     def _dispatch_loop(self):
         while True:
             event = self._message_queue.get()
             if event is None:
                 return
+            event.session_id = self.session_id
             for worker, cb in self.on_log_cbs:
                 if event.worker == worker:
                     cb(event)
+
+    def completion_loop(self, name):
+        worker = self.workers[name]
+        self.join_worker(name)
+        if worker.ctx.success_event.is_set() and self.on_success_cbs[name]:
+            self.on_success_cbs[name]()
+        elif self.on_failure_cbs[name]:
+            self.on_failure_cbs[name]()
+        self._cleanup(name)
+        if self._pending:
+            task = self._pending.popleft()
+            self._start_worker(task.name, task.args_list, task.on_success, task.on_failure)
+
+    def cleanup(self, name):
+        self.completion_threads[name].stop()
+        self.completion_threads[name].join()
 
     def destroy(self):
         self._message_queue.put(None)  # poison pill

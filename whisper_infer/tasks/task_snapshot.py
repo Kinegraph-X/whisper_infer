@@ -7,6 +7,6 @@ class TaskSnapshot:
     state: TaskState
     started_at: float
     elapsed: float
-    retries: int
     last_error: str
+    retries: int
     progress: dict  # extensible : {"lines_processed": 42, ...}

@@ -1,11 +1,11 @@
 from worker_logger import WorkerLogger
-from worker_context import WorkerContext
+from whisper_infer.workers import WorkerContext
 from datetime import datetime
 import multiprocessing
 import threading
 from multiprocessing import Process
 import subprocess
-from msg_event import MsgEvent
+from whisper_infer.events import LogEvent
 
 def get_time():
 	current_datetime = datetime.now()
@@ -13,18 +13,17 @@ def get_time():
 
 class BasicWorker(Process):
 
-    def __init__(self, name, args_list, on_success : callable = None, on_failure : callable = None, debug=False, dist=False, **kwargs):
+    def __init__(self, name, args_list, debug=False, dist=False, **kwargs):
         super(BasicWorker, self).__init__()
         self.name = name
         self.args_list = args_list
         self.dest_con, self.origin_con = multiprocessing.Pipe()
         self.ctx = WorkerContext(name)
-        self.output_queue = multiprocessing.Queue()
         self.print_queue = None     # assigned by the manager, as it's handled as a central message queue
-        self.queue_flag = multiprocessing.Event()
-        self.logger = WorkerLogger(name, f"{args_list[0]}_logs/")
-        self.ctx.on_success = on_success
-        self.ctx.on_failure = on_failure
+        log_folder = f"{args_list[0]}_logs/" if args_list[0] != "python" else f"{args_list[1][:-3]}_logs/"
+        self.logger = WorkerLogger(name, log_folder)
+        self.ctx.success_event = multiprocessing.Event()
+        self.ctx.failure_event = multiprocessing.Event()
 
     def run(self):
         try:
@@ -54,10 +53,10 @@ class BasicWorker(Process):
             sp.terminate()
 
             exit_code = sp.wait()
-            if exit_code == 0 and self.ctx.on_success:
-                self.ctx.on_success and self.ctx.on_success(self.name)
-            elif self.ctx.on_failure:
-                self.ctx.on_failure and self.ctx.on_failure(self.name, exit_code)
+            if exit_code == 0:
+                self.ctx.success_event.set()
+            else:
+                self.ctx.failure_event.set()
 
             self.print_queue.put(
                 f"{get_time()} INFO : {self.name} subprocess terminated.")
@@ -99,6 +98,6 @@ class BasicWorker(Process):
             for line in lines:
                 if line.strip():
                     if self.logger.push(line.strip()):   # the logger is responsible for classifying messages (for verbose outputs)
-                        self.print_queue.put(MsgEvent(self.name, line.strip()))
+                        self.print_queue.put(LogEvent(self.name, line.strip()))
                         self.queue_flag.set()
 

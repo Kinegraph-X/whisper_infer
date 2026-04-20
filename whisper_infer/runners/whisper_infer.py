@@ -3,6 +3,7 @@ import json
 import torch
 import time
 import csv
+from config import config
 
 from faster_whisper import WhisperModel
 
@@ -17,7 +18,7 @@ if len(sys.argv) > 2:
     transcript_filename = sys.argv[2]
 else:
     transcript_filename = f"{base_filename}_{timestamp}"
-model_size = "small"
+model_size = config.whisper_model
 
 # Run on GPU with FP16
 model = WhisperModel(model_size, device="cpu", compute_type="int8")

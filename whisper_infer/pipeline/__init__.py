@@ -1,3 +1,5 @@
 from pipeline_config import PipelineConfig
 from pipeline_snapshot import PipelineSnapshot
 from pipeline_state import PipelineState, PipelineStatus
+from pipeline_failure import PipelineFailure
+from pipeline_orchestrator import PipelineOrchestrator

@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 from whisper_infer.tasks import TaskSnapshot
+from whisper_infer.states import PipelineState
 
 @dataclass  
 class PipelineSnapshot:
     tasks: dict[str, TaskSnapshot]
-    early_exit: bool
+    state : PipelineState
     started_at: float
     elapsed: float
+    early_exit: bool

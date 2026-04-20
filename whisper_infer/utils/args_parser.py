@@ -2,6 +2,7 @@ import sys, re
 import argparse
 from config import config
 from constants import constants
+from channel_info import extract_channel_info
 
 parser = argparse.ArgumentParser(
     description='Parallelized, worker-based, transcription and matching engine (via Fast-Whisper) \n' \
@@ -60,7 +61,7 @@ else:
         print("Channel name not found, exiting...")
         sys.exit()
     else:
-        config.channel_name = match.group(1) + match.group(2)
+        config.channel_name = extract_channel_info(args.path)
 
 if args.match:
     config.keywords = args.match

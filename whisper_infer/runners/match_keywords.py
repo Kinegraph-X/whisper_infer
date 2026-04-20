@@ -39,7 +39,7 @@ def process_transcript(transcript_filename, start_timestamp):
 process_transcript(sys.argv[1], sys.argv[2])
 
 # store to disk
-filename = f"{config.channel_name}_matches.json"
+filename = f"{constants.match_folder}{config.channel_name}_matches.json"
 if os.path.exists(filename):
     with open(filename, "r", encoding="utf-8") as f:
         content = json.load(f)

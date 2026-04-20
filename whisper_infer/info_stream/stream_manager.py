@@ -1,4 +1,4 @@
-from  whisper_infer.events import LogEvent, Enveloppe
+from  whisper_infer.events import LogEvent, Enveloppe, EventType
 from whisper_infer.workers import WorkerManager
 
 class StreamManager:
@@ -11,13 +11,16 @@ class StreamManager:
 
     def subscribe(self, manager: WorkerManager):
         manager.subscribe_to_logs(self._on_event)
+        self._orchestrator.subscribe(self._on_event)
 
     def add_sink(self, fn: callable):
         self._sinks.append(fn)
 
     def _on_event(self, event: LogEvent):
-        # enriched with current snapshot
-        snapshot = self._orchestrator.snapshot(event.name) if self._orchestrator else None
-        envelope = Enveloppe(event=event, pipeline_state=snapshot)
+        envelope = Enveloppe(event=event)
+        if event.type in (EventType.STATE_CHANGE, EventType.TASK_DONE, EventType.EARLY_EXIT):
+            # enriched with current snapshot
+            envelope.snapshot = self._orchestrator.snapshot(event.worker)
+        
         for sink in self._sinks:
             sink(envelope)

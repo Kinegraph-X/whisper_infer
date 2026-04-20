@@ -18,7 +18,8 @@ class constants():
     transcript_file = f"transcript_{config.channel_name}"
     transcript_ext = ".tsv"
     keywords_pattern : Pattern | None = re.compile(r"\b(" + "|".join(config.keywords) + r")\b", re.IGNORECASE) if config.keywords else None
-    matching_script = 'runners/match_keywords.py'
+    matching_script = 'whisper_infer/runners/match_keywords.py'
+    match_folder = 'matches/'
 
 os.makedirs(constants.ffmpeg_logs_folder, exist_ok=True)
 os.makedirs(constants.chunks_folder, exist_ok=True)

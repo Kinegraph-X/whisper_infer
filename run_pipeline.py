@@ -1,7 +1,7 @@
 from config import config
 from constants import constants
 from whisper_infer.commands import get_ffmpeg_commands
-from whisper_infer.tasks import Task, TaskOrchestrator
+from whisper_infer.tasks import Task, TaskOrchestrator, LocalProcessStrategy, SubprocessStrategy
 from whisper_infer.utils import args, get_duration, FloatAccumulator
 from whisper_infer.pipeline import  PipelineConfig, PipelineStatus, Pipeline
 from whisper_infer.m3u8 import split_m3u8
@@ -16,6 +16,8 @@ stream_manager = StreamManager()
 stream_manager.subscribe(dl_worker_manager)
 stream_manager.subscribe(whisper_worker_manager)
 stream_manager.add_sink(lambda e: print(f"[{e.worker_name}] {e.message}"))
+
+pipelines = []
 
 orchestrator = TaskOrchestrator()
 
@@ -34,26 +36,27 @@ ffmpeg_after_complete = lambda name: current_audio_timestamp(get_duration(name))
 commands = get_ffmpeg_commands(chunks_count)
 
 for cmd in commands:
-    orchestrator.add_pipeline(
-        Pipeline(
+    pipeline = Pipeline(
             Task(
                 cmd.worker_name,
                 dl_worker_manager,
                 cmd.cmd,
-                True,
+                LocalProcessStrategy,
                 ffmpeg_after_complete
             ),
             Task(
                 cmd.transcript_file,
                 whisper_worker_manager,
                 ['python', config.whisper_actual, cmd.audio_filepath, cmd.transcript_filename],
-                True
+                LocalProcessStrategy
             ),
             Task(
                 f'match_{cmd.transcript_file}',
                 None,
                 ['python', constants.matching_script, cmd.transcript_filename, current_audio_timestamp],
-                True
+                SubprocessStrategy
             )
         )
-    )
+    pipelines.append(pipeline)
+
+orchestrator.submit_session(pipelines, config)

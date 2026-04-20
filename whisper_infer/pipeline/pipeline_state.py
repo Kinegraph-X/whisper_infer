@@ -5,6 +5,7 @@ import threading
 class PipelineState(Enum):
     PENDING = "pending"
     RUNNING = "running"
+    FAILED =  "failed"
     DONE = "done"
 
 @dataclass
