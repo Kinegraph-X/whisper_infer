@@ -7,7 +7,7 @@ import subprocess
 
 from .worker_logger import WorkerLogger
 
-from whisper_infer.events import LogEvent
+from whisper_infer.messages import LogEvent
 from whisper_infer.states import WorkerContext
 
 def get_time():

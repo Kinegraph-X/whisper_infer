@@ -8,7 +8,7 @@ from whisper_infer.utils import StrSerializable
 @dataclass
 class Task:
     name: str
-    manager: WorkerManager      # mécanique d'exécution
+    manager: WorkerManager | None     # mécanique d'exécution
     cmd: List[str | StrSerializable]
     strategy : ExecutionStrategy = LocalProcessStrategy()
     after_complete : Callable | None = None

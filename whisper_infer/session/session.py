@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from whisper_infer.states import SessionState
-from whisper_infer.pipeline import Pipeline, PipelineFailure
+from whisper_infer.pipeline import Pipeline
+from whisper_infer.snapshots import PipelineFailure
 
 @dataclass
 class Session:

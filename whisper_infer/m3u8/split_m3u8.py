@@ -1,3 +1,4 @@
+from typing import List
 import urllib.request
 import re
 from urllib.parse import urljoin
@@ -9,8 +10,8 @@ def split_m3u8(input_url, dest_folder, base_filename = 'playlist_', target_durat
     lines = content.splitlines(keepends=True)
 
     chunks = []
-    current_chunk = []
-    current_duration = 0
+    current_chunk : List[str] = []
+    current_duration = 0.0
     chunk_index = 0
 
     header = []

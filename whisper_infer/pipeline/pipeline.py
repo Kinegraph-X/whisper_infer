@@ -3,8 +3,7 @@ from uuid import uuid4
 from typing import List, Set
 from dataclasses import dataclass
 
-from .pipeline_snapshot import PipelineSnapshot
-
+from whisper_infer.snapshots import PipelineSnapshot
 from whisper_infer.tasks import PipelineTask, Task
 from whisper_infer.states import PipelineState
 
@@ -27,7 +26,7 @@ class Pipeline():
         self.tasks.append(task)
         return 
     
-    def snapshot(self) -> PipelineSnapshot | None:
+    def snapshot(self) -> PipelineSnapshot:
         return PipelineSnapshot(
             id = self.id,
             tasks = {t.name: t.snapshot() for t in self.tasks},

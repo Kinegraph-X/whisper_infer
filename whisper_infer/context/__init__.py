@@ -1,2 +1,1 @@
-from .context import constants as constants, get_context as get_context
-from .config import config as config
+from .context import get_app_context as get_app_context

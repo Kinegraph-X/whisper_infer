@@ -8,7 +8,8 @@ from .worker_status import WorkerStatus
 from .basic_worker import BasicWorker
 
 from whisper_infer.tasks import PendingTask
-from whisper_infer.utils import args as cmd_line_args
+from whisper_infer.context import get_app_context
+config, constants, cmd_line_args = get_app_context()
 from whisper_infer.states import WorkerState
 # if getattr(sys, 'frozen', False):
 
@@ -73,8 +74,8 @@ class WorkerManager:
         )
         self.workers[name].ctx.set_stopped("initial state")
 
-    def subscribe_to_logs(self, name, cb):
-        self.on_log_cbs[name] = cb
+    def subscribe_to_logs(self, cb, name : str | None = None):
+        self.on_log_cbs['central_queue'] = cb
 
     def start_worker(self, name, *args):
         self._assert_transition(name, WorkerState.STOPPED)

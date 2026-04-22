@@ -1,6 +1,6 @@
 [tool.mypy]
 strict = true
-exclude = ["v0/"]
+exclude = ["v0/", "run_pipeline_old"]
 disallow_untyped_defs = false
 disable_error_code = ["type-arg", "no-untyped-call", "no-untyped-def"]
 ignore_missing_imports = false  # pour les libs sans stubs

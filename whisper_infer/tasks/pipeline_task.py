@@ -2,10 +2,10 @@ import time
 from typing import List, Callable
 from dataclasses import dataclass
 
-from .task_snapshot import TaskSnapshot
 from .task import Task
 from .task_strategy import ExecutionStrategy, LocalProcessStrategy, SubprocessStrategy
 
+from whisper_infer.snapshots import TaskSnapshot
 from whisper_infer.states import TaskState
 from whisper_infer.workers import WorkerManager
 from whisper_infer.states import WorkerContext
@@ -16,7 +16,7 @@ class PipelineTask:
     def __init__(self, task_spec : Task, session_id : str = 'local'):
         session_prefix = session_id[:6]
         self.name = f"{session_prefix}_{task_spec.name}"
-        self.manager: WorkerManager = task_spec.manager
+        self.manager: WorkerManager | None = task_spec.manager
         self.cmd: List[str | StrSerializable] = task_spec.cmd
         self.strategy : ExecutionStrategy  = LocalProcessStrategy()
         self.after_complete : Callable | None = task_spec.after_complete

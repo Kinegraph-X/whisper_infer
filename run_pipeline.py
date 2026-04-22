@@ -1,6 +1,6 @@
 from typing import List
-from whisper_infer.context.context import get_context
-config, constants = get_context()
+from whisper_infer.context import get_app_context
+config, constants = get_app_context()
 # import whisper_infer.commands 
 from whisper_infer.commands import get_ffmpeg_commands
 from whisper_infer.tasks import Task, LocalProcessStrategy, SubprocessStrategy
@@ -14,14 +14,14 @@ from whisper_infer.session import SessionManager
 
 pipelines : List[Pipeline] = []
 
-session = SessionManager(config)
+session_manager = SessionManager(config)
 
 # Worker managers
-dl_worker_manager = WorkerManager(session.id)
-whisper_worker_manager = WorkerManager(session.id)
+dl_worker_manager = WorkerManager(session_manager.session.id)
+whisper_worker_manager = WorkerManager(session_manager.session.id)
 
-orchestrator = session.orchestrator
-stream_manager = StreamManager(session)
+orchestrator = session_manager.orchestrator
+stream_manager = StreamManager()
 stream_manager.subscribe(dl_worker_manager)
 stream_manager.subscribe(whisper_worker_manager)
 stream_manager.add_sink(lambda e: print(f"[{e.worker_name}] {e.message}"))
@@ -55,7 +55,7 @@ for cmd in commands:
     orchestrator.add_task(
         pipeline_id,
         Task(
-            cmd.transcript_file,
+            cmd.transcript_filename,
             whisper_worker_manager,
             ['python', config.whisper_actual, cmd.audio_filepath, cmd.transcript_filename],
             LocalProcessStrategy()
@@ -64,7 +64,7 @@ for cmd in commands:
     orchestrator.add_task(
         pipeline_id,
         Task(
-            f'match_{cmd.transcript_file}',
+            f'match_{cmd.transcript_filename}',
             None,
             ['python', constants.matching_script, cmd.transcript_filename, current_audio_timestamp],
             SubprocessStrategy()

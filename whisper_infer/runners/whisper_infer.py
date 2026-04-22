@@ -3,7 +3,8 @@ import json
 import torch
 import time
 import csv
-from whisper_infer.context import config
+from whisper_infer.context import get_app_context
+config, constants = get_app_context()
 
 from faster_whisper import WhisperModel
 
@@ -21,7 +22,7 @@ else:
 model_size = config.whisper_model
 
 # Run on GPU with FP16
-model = WhisperModel(model_size, device = config.whisper_platform, compute_type="int8")
+model = WhisperModel(model_size, device = config.whisper_platform, compute_type = config.whisper_compute_type)
 
 # or run on GPU with INT8
 # model = WhisperModel(model_size, device="cuda", compute_type="int8_float16")

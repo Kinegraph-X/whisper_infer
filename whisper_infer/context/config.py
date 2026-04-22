@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from typing import List, Pattern, Match
+from typing import List
 import os
 from dataclasses import dataclass
 
@@ -22,5 +22,6 @@ class Config():
     log_level = os.getenv("LOG_LEVEL", "INFO")
     whisper_model = os.getenv("WHISPER_MODEL", "small")
     whisper_platform = os.getenv("WHISPER_PLATFORM", "cpu")
+    whisper_compute_type = "int8" if os.getenv("WHISPER_PLATFOM") == "cpu" else 'FP16'
 
 config = Config()

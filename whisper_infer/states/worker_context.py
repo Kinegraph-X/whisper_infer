@@ -3,7 +3,7 @@ from multiprocessing.synchronize import Event as MpEvent
 from dataclasses import dataclass
 from time import time
 import multiprocessing
-from .worker_states import WorkerState
+from .worker_state import WorkerState
 
 
 class WorkerContext:

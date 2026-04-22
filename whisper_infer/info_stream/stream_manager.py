@@ -1,29 +1,26 @@
 from typing import List, Callable
-from whisper_infer.events import LogEvent, Enveloppe, EventType
+from whisper_infer.messages import LogEvent, Enveloppe
 from whisper_infer.workers import WorkerManager
-from whisper_infer.session import SessionManager
+from whisper_infer.snapshots import SessionSnapshot
 
 class StreamManager:
-    def __init__(self, session : SessionManager):
+    def __init__(self):
         self._sinks : List[Callable] = []          # callables : CLI, WebSocket, fichier...
-        self._orchestrator = session.orchestrateur
-        self._session = session  # référence for on demand snapshot
 
     def attach_orchestrator(self, orchestrator):
         self._orchestrator = orchestrator
 
     def subscribe(self, manager: WorkerManager):
         manager.subscribe_to_logs(self._on_event)
-        self._orchestrator.subscribe(self._on_event)
 
     def add_sink(self, fn: Callable):
         self._sinks.append(fn)
 
-    def _on_event(self, event: LogEvent):
+    def _on_event(self, event: LogEvent, snapshot : SessionSnapshot | None = None):
         envelope = Enveloppe(event=event)
-        if event.type in (EventType.STATE_CHANGE, EventType.TASK_DONE, EventType.EARLY_EXIT):
+        if snapshot:
             # enriched with current snapshot
-            envelope.snapshot = self._session.snapshot()
+            envelope.session_snapshot = snapshot
         
         for sink in self._sinks:
             sink(envelope)
