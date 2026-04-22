@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from msg_type import MsgType
+from .msg_type import MsgType
 
 @dataclass
 class MsgEvent():

@@ -27,7 +27,9 @@ def split_m3u8(input_url, dest_folder, base_filename = 'playlist_', target_durat
         if line.startswith("#EXTINF"):
             duration = float(line.split(":")[1].split(",")[0])
 
-            segment_block = [line, f'{urljoin(input_url, re.sub(r"-unmuted\.ts$", "-muted.ts", lines[i+1]))}\n']
+            newline = '\n'    # python < 3.12 : f-string expression part cannot include a backslash
+            lines[i + 1] = re.sub(r"-unmuted\.ts$", "-muted.ts", lines[i+1])
+            segment_block = [line, f'{urljoin(input_url, lines[i + 1])}{newline}']
 
             if current_duration + duration > target_duration and current_chunk:
                 # flush chunk

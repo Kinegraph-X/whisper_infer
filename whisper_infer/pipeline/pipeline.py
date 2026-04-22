@@ -1,17 +1,19 @@
 import time
 from uuid import uuid4
-from typing import List
+from typing import List, Set
 from dataclasses import dataclass
+
+from .pipeline_snapshot import PipelineSnapshot
+
 from whisper_infer.tasks import PipelineTask, Task
-from pipeline_state import PipelineState
-from pipeline_snapshot import PipelineSnapshot
+from whisper_infer.states import PipelineState
 
 class Pipeline():
     def __init__(self, session_id : str = 'local'):
-        self.id : str = uuid4()
+        self.id : str = uuid4().hex
         self.session_id = session_id
-        self.tasks : List[Task] = []
-        self._task_names = set()  # enforce local unicity
+        self.tasks : List[PipelineTask] = []
+        self._task_names : Set[str] = set()  # enforce local unicity
         self.state : PipelineState = PipelineState.PENDING
         self.currently_running : Task | None = None
         self.started_at : float = time.time()
@@ -27,8 +29,8 @@ class Pipeline():
     
     def snapshot(self) -> PipelineSnapshot | None:
         return PipelineSnapshot(
-            pipeline_id=self.pipeline_id,
-            tasks=[t.snapshot() for t in self.tasks],
+            id = self.id,
+            tasks = {t.name: t.snapshot() for t in self.tasks},
             state=self.state,
             early_exit = self.early_exit,
             started_at=self.started_at,

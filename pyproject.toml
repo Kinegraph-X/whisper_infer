@@ -1,0 +1,10 @@
+[tool.mypy]
+strict = true
+exclude = ["v0/"]
+disallow_untyped_defs = false
+disable_error_code = ["type-arg", "no-untyped-call", "no-untyped-def"]
+ignore_missing_imports = false  # pour les libs sans stubs
+
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "I"]  # erreurs, pyflakes, isort

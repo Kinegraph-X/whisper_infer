@@ -13,7 +13,7 @@ def extract_channel_info(url: str) -> tuple[str, str]:
     
     # Twitch — known hostname OR pattern on path Amazon CDN Twitch
     m = re.search(r"/[a-f0-9]+_(.+?)_(\d+)_\d+/", url)
-    if m and (TWITCH_HOSTS.search(url) or "cloudfront.net" in parsed.hostname):
+    if m and (TWITCH_HOSTS.search(url) or "cloudfront.net" in str(parsed.hostname)):
         return m.group(1), m.group(2)
     
     # fallback if path match but unknown hostname : try anyway

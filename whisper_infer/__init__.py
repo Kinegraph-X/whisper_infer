@@ -1,5 +1,5 @@
 import logging
-from config import config
+from whisper_infer.context import config
 
 logging.basicConfig(
     level=config.log_level,

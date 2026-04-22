@@ -1,4 +1,5 @@
 import re
+from typing import Deque
 from collections import deque
 
 EVENT_RE = re.compile(r'^\[\w+ @ 0x[0-9a-f]+\]')
@@ -9,8 +10,8 @@ class WorkerLogger:
         self.base_folder = base_folder
         self.max_lines = max_lines
         self.max_files = max_files
-        self.event_buffer = deque()
-        self.progress_buffer = deque()
+        self.event_buffer : Deque[str] = deque()
+        self.progress_buffer : Deque[str] = deque()
         self.event_count = 0
         self.file_index = 0
 

@@ -1,1 +1,1 @@
-from stream_manager import StreamManager
+from .stream_manager import StreamManager as StreamManager

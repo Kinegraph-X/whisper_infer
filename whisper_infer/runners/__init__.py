@@ -1,3 +1,3 @@
-from whisper_infer import export_transcription
-from whisper_mock import export_transcription
-from whisper_monitor import WhisperMonitor
+from .whisper_infer import export_transcription as export_transcription
+from .whisper_mock import mock_transcription as mock_transcription
+from .match_keywords import process_transcript as process_transcript

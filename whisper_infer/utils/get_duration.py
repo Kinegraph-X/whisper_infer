@@ -1,7 +1,7 @@
 import subprocess
 import json
 
-def get_duration(file_path):
+def get_duration(file_path : str):
     cmd = [
         "ffprobe",
         "-v", "error",

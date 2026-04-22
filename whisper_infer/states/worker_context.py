@@ -1,6 +1,9 @@
+from typing import Callable
+from multiprocessing.synchronize import Event as MpEvent
 from dataclasses import dataclass
-import time
-from worker_state import WorkerState
+from time import time
+import multiprocessing
+from .worker_states import WorkerState
 
 
 class WorkerContext:
@@ -9,9 +12,11 @@ class WorkerContext:
         self.state: WorkerState
         self.last_action: str = ""
         self.last_error: str = ""
-        self.on_success : callable = None
-        self.on_failure: callable = None    # not used for now
+        self.on_success : Callable | None = None
+        self.on_failure: Callable | None = None    # not used for now
         self.timestamp: float = 0.0
+        self.success_event : MpEvent = multiprocessing.Event()
+        self.failure_event : MpEvent = multiprocessing.Event()
     def set_running(self, action: str):
         self.state = WorkerState.RUNNING
         self.last_action = f'{self.name} : {action}'

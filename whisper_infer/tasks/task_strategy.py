@@ -1,8 +1,9 @@
+from typing import Callable
 import subprocess, threading
-from pipeline_task import PipelineTask
+from .pipeline_task import PipelineTask
 
 class ExecutionStrategy:
-    def run(self, task: PipelineTask, on_success: callable, on_failure: callable):
+    def run(self, task: PipelineTask, on_success: Callable, on_failure: Callable):
         raise NotImplementedError
 
 class LocalProcessStrategy(ExecutionStrategy):
@@ -21,11 +22,10 @@ class SubprocessStrategy(ExecutionStrategy):
         result = subprocess.run(task.cmd)
         on_success() if result.returncode == 0 else on_failure()
 
-class ExternalQueueStrategy(ExecutionStrategy):
+class ExternalStrategy(ExecutionStrategy):
     """
     This Must be implemented depending on your syncing strategy:
     progress file on disk, distant queue, socket synchronisation
     """
     def run(self, task, on_success, on_failure):
-        # on_success/on_failure may be called when the external mecanism responds
         raise NotImplementedError

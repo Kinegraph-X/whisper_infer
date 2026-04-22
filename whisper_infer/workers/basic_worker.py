@@ -1,11 +1,14 @@
-from worker_logger import WorkerLogger
-from whisper_infer.workers import WorkerContext
 from datetime import datetime
 import multiprocessing
 import threading
 from multiprocessing import Process
+from multiprocessing.synchronize import Event as MpEvent
 import subprocess
+
+from .worker_logger import WorkerLogger
+
 from whisper_infer.events import LogEvent
+from whisper_infer.states import WorkerContext
 
 def get_time():
 	current_datetime = datetime.now()
@@ -22,8 +25,6 @@ class BasicWorker(Process):
         self.print_queue = None     # assigned by the manager, as it's handled as a central message queue
         log_folder = f"{args_list[0]}_logs/" if args_list[0] != "python" else f"{args_list[1][:-3]}_logs/"
         self.logger = WorkerLogger(name, log_folder)
-        self.ctx.success_event = multiprocessing.Event()
-        self.ctx.failure_event = multiprocessing.Event()
 
     def run(self):
         try:
@@ -48,7 +49,8 @@ class BasicWorker(Process):
                         break
 
             # Proceed to termination on "EXIT" received
-            self.print_queue.put(f"{get_time()} INFO : about to kill the {self.name} worker")
+            if self.print_queue:
+                self.print_queue.put(f"{get_time()} INFO : about to kill the {self.name} worker")
             self.logger.close()
             sp.terminate()
 
@@ -58,13 +60,15 @@ class BasicWorker(Process):
             else:
                 self.ctx.failure_event.set()
 
-            self.print_queue.put(
-                f"{get_time()} INFO : {self.name} subprocess terminated.")
+            if self.print_queue:
+                self.print_queue.put(
+                    f"{get_time()} INFO : {self.name} subprocess terminated.")
             self.ctx.set_stopped('subprocess terminated')
 
         except Exception as e:
-            self.print_queue.put(
-                f'Raised exception in {self.name} Worker {str(e)}')
+            if self.print_queue:
+                self.print_queue.put(
+                    f'Raised exception in {self.name} Worker {str(e)}')
 
     def terminate(self):
         self.origin_con.send('EXIT')
@@ -75,8 +79,9 @@ class BasicWorker(Process):
 
         if self.is_alive():
             super().terminate()
-            self.print_queue.put(
-                f"{get_time()} INFO : {self.name} process forcefully terminated.")
+            if self.print_queue:
+                self.print_queue.put(
+                    f"{get_time()} INFO : {self.name} process forcefully terminated.")
             self.ctx.set_stopped('process forcefully terminated')
 
     def read_subprocess_output(self, sp):
@@ -98,6 +103,6 @@ class BasicWorker(Process):
             for line in lines:
                 if line.strip():
                     if self.logger.push(line.strip()):   # the logger is responsible for classifying messages (for verbose outputs)
-                        self.print_queue.put(LogEvent(self.name, line.strip()))
-                        self.queue_flag.set()
+                        if self.print_queue:
+                            self.print_queue.put(LogEvent(self.name, line.strip()))
 

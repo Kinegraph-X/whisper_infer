@@ -3,7 +3,7 @@ import json
 import torch
 import time
 import csv
-from config import config
+from whisper_infer.context import config
 
 from faster_whisper import WhisperModel
 
@@ -21,7 +21,7 @@ else:
 model_size = config.whisper_model
 
 # Run on GPU with FP16
-model = WhisperModel(model_size, device="cpu", compute_type="int8")
+model = WhisperModel(model_size, device = config.whisper_platform, compute_type="int8")
 
 # or run on GPU with INT8
 # model = WhisperModel(model_size, device="cuda", compute_type="int8_float16")
@@ -35,7 +35,7 @@ print("Detected language '%s' with probability %f" % (info.language, info.langua
 # for segment in segments:
     # print("[%.2fs -> %.2fs] %s" % (segment.start, segment.end, segment.text))
 
-def export_transcription(segments, base_filename):
+def export_transcription(segments, base_filename : str):
     
     tsv_file = f"{transcript_filename}.tsv"
     srt_file = f"{transcript_filename}.srt"

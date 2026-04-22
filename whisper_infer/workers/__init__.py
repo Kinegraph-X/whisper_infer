@@ -1,4 +1,4 @@
-from basic_worker import BasicWorker
-from worker_logger import WorkerLogger
-from worker_manager import WorkerManager
-from worker_monitor import WorkerMonitor
+from .basic_worker import BasicWorker as BasicWorker
+from .worker_logger import WorkerLogger as WorkerLogger
+from .worker_manager import WorkerManager as WorkerManager
+from .worker_status import WorkerStatus as WorkerStatus

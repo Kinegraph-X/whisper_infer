@@ -1,6 +1,6 @@
 import os, sys, re, csv, json
-from config import config
-from constants import constants
+from whisper_infer.context import config
+from whisper_infer.context import constants
 
 if len(sys.argv) < 3:
     print('usage : python match_keywords <transcript_filename> <start_timestamp>')

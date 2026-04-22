@@ -1,23 +1,25 @@
-from config import config
-from constants import constants
+from typing import List
+from whisper_infer.context.context import get_context
+config, constants = get_context()
+# import whisper_infer.commands 
 from whisper_infer.commands import get_ffmpeg_commands
-from whisper_infer.tasks import Task, TaskOrchestrator, LocalProcessStrategy, SubprocessStrategy
-from whisper_infer.utils import args, get_duration, FloatAccumulator
-from whisper_infer.pipeline import  PipelineConfig, PipelineStatus, Pipeline
+from whisper_infer.tasks import Task, LocalProcessStrategy, SubprocessStrategy
+from whisper_infer.utils import get_duration, FloatAccumulator
+from whisper_infer.pipeline import  Pipeline
 from whisper_infer.m3u8 import split_m3u8
 from whisper_infer.workers import WorkerManager
 from whisper_infer.info_stream import StreamManager
 from whisper_infer.session import SessionManager
 
 
+pipelines : List[Pipeline] = []
+
+session = SessionManager(config)
+
 # Worker managers
-dl_worker_manager = WorkerManager()
-whisper_worker_manager = WorkerManager()
+dl_worker_manager = WorkerManager(session.id)
+whisper_worker_manager = WorkerManager(session.id)
 
-pipelines = []
-
-session = SessionManager()
-session.create_session(config)
 orchestrator = session.orchestrator
 stream_manager = StreamManager(session)
 stream_manager.subscribe(dl_worker_manager)
@@ -46,7 +48,7 @@ for cmd in commands:
             cmd.worker_name,
             dl_worker_manager,
             cmd.cmd,
-            LocalProcessStrategy,
+            LocalProcessStrategy(),
             ffmpeg_after_complete
         )
     )
@@ -56,7 +58,7 @@ for cmd in commands:
             cmd.transcript_file,
             whisper_worker_manager,
             ['python', config.whisper_actual, cmd.audio_filepath, cmd.transcript_filename],
-            LocalProcessStrategy
+            LocalProcessStrategy()
         )
     )
     orchestrator.add_task(
@@ -65,7 +67,8 @@ for cmd in commands:
             f'match_{cmd.transcript_file}',
             None,
             ['python', constants.matching_script, cmd.transcript_filename, current_audio_timestamp],
-            SubprocessStrategy
+            SubprocessStrategy()
         )
     )
 
+orchestrator.start_all_pipelines()

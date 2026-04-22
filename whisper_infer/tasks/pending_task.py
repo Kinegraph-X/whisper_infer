@@ -1,9 +1,9 @@
-from typing import List
+from typing import List, Callable
 from dataclasses import dataclass
 
 @dataclass
 class PendingTask:
     name : str
     args_list : List[str]
-    on_success : callable
-    on_failure : callable
+    on_success : Callable | None
+    on_failure : Callable | None

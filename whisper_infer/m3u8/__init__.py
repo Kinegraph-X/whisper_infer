@@ -1,1 +1,1 @@
-from split_m3u8 import split_m3u8
+from .split_m3u8 import split_m3u8 as split_m3u8

@@ -1,5 +1,9 @@
+from dataclasses import dataclass
+from typing import List
+from whisper_infer.utils import StrSerializable
+
+@dataclass
 class WhisperTask:
-    def __init__(self, command, transcript_file, start_timestamp):
-        self.command = command
-        self.transcript_file = transcript_file
-        self.start_timestamp = start_timestamp
+    command : List[str | StrSerializable]
+    transcript_file : str
+    start_timestamp : str

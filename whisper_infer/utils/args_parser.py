@@ -1,72 +1,105 @@
-import sys, re
 import argparse
-from config import config
-from constants import constants
-from channel_info import extract_channel_info
+
+from .channel_info import extract_channel_info
+
+from whisper_infer.context.config import config
 
 parser = argparse.ArgumentParser(
     description='Parallelized, worker-based, transcription and matching engine (via Fast-Whisper) \n' \
     'Usage: python run_pipeline.py <m3u8_url> [-match] [keyword1] [keyword2...]')
 
-parser.add_argument('--debug', 
-					help='This will enable CLI logging, instead of using the HTTP server',
-                    required=False,
-                    action='store_true'
-                    )
-parser.add_argument('--test', 
-					help='This will use test m3u8 urls and mock whisper',
-                    required=False,
-                    action='store_true'
-                    )
-parser.add_argument('--dist', 
-					help='This will define the paths of the modules relative to the dist folder',
-                    required=False,
-                    action='store_true'
-                    )
 parser.add_argument('--path', '-i',
-					help='This will define the path to the video/audio/m3u8/manifest file',
-                    required=False,
+                    help='Path or URL to video/audio/m3u8/manifest file',
+                    required=True,
                     nargs='+'
                     )
 parser.add_argument('--match', '-m',
-					help='This will enable matching on keywords. You must add space separated keywords',
+                    help='Enable keyword matching. Add space-separated keywords',
                     required=False,
                     nargs='+'
                     )
 parser.add_argument('--chunk_size', '-t',
-					help='This will define the size of a chunk when processing audio',
+                    help='Chunk size in seconds when processing audio (default: 3600)',
                     required=False,
-                    type = 'int',
-                    default = 3600
+                    type=int,
+                    default=None  # None to distinguish non-given from "given at default value"
                     )
-
-args = parser.parse_args()
+parser.add_argument('--whisper_model', '-w',
+                    help='Whisper model size: tiny, base, small, medium, large (default: from .env or small)',
+                    required=False,
+                    choices=['tiny', 'base', 'small', 'medium', 'large'],
+                    default=None
+                    )
+parser.add_argument('--whisper_platform',
+                    help='Whisper execution platform: cpu, cuda, mps (default: from .env or cpu)',
+                    required=False,
+                    choices=['cpu', 'cuda', 'mps'],
+                    default=None
+                    )
+parser.add_argument('--log_level',
+                    help='Logging verbosity (default: from .env or INFO)',
+                    required=False,
+                    choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
+                    default=None
+                    )
+parser.add_argument('--debug', 
+                    help='Enable CLI logging instead of HTTP server',
+                    required=False,
+                    action='store_true'
+                    )
+parser.add_argument('--test', 
+                    help='Use test m3u8 urls and mock whisper',
+                    required=False,
+                    action='store_true'
+                    )
+parser.add_argument('--dist', 
+                    help='Define paths relative to dist folder',
+                    required=False,
+                    action='store_true'
+                    )
 
 # if args.h:
 #     print("Usage: python run_pipeline.py <m3u8_url> [-match] [keyword1] [keyword2...]")
 
-if args.test:
-    config.USE_MOCK = True
-    config.USE_TEST = True
-    config.should_match = False
-    config.whisper_path = "whisper_mock.py"
+args = parser.parse_args()
 
-if not args.path:
-    config.media_path = constants.test_m3u8
-    config.channel_name = "test_channel"
-else:
-    config.media_path = args.path[0]
-    match = re.search(r"/[a-f0-9]+_(.+?)(_\d+)_\d+/", args.path)
-    if not match:
-        print("Channel name not found, exiting...")
-        sys.exit()
+def get_config():
+    if args.test:
+        config.USE_MOCK = True
+        config.USE_TEST = True
+        config.should_match = False
+        config.whisper_path = "whisper_mock.py"
+        config.whisper_func = 'mock_transcription'
+
+    config.debug = args.debug
+    config.dist = args.dist
+
+    if args.path:
+        config.media_path = args.path[0]
+        config.channel_name, config.vod_uid = extract_channel_info(args.path[0])
     else:
-        config.channel_name = extract_channel_info(args.path)
+        config.channel_name = "test_channel"
+        config.vod_uid = "local"
 
-if args.match:
-    config.keywords = args.match
-else:
-    print(f"[INFO] : matching is not enabled, transcript only")
+    if args.match:
+        config.should_match = True
+        config.keywords = args.match
+    else:
+        print(f"[INFO] : matching is not enabled, transcript only (add --match keyword1, keyword2, etc to enable)")
 
+    # CLI overrides .env only if arg explicitely given
+    if args.chunk_size is not None:
+        config.segment_duration = args.chunk_size
 
-config.segment_duration = args.chunk_size
+    if args.whisper_model is not None:
+        config.whisper_model = args.whisper_model
+
+    if args.whisper_platform is not None:
+        config.whisper_platform = args.whisper_platform
+
+    if args.log_level is not None:
+        config.log_level = args.log_level
+
+    config.segment_duration = args.chunk_size
+
+    return config

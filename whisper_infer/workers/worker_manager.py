@@ -1,20 +1,21 @@
+from typing import Callable, List
 import sys, multiprocessing, threading
-from queue import deque
-from worker_logger import WorkerLogger
-from worker_status import WorkerStatus
-from multiprocessing import get_context
+from multiprocessing import get_context, Queue
+from collections import deque
+
+from .worker_logger import WorkerLogger
+from .worker_status import WorkerStatus
+from .basic_worker import BasicWorker
+
 from whisper_infer.tasks import PendingTask
+from whisper_infer.utils import args as cmd_line_args
+from whisper_infer.states import WorkerState
 # if getattr(sys, 'frozen', False):
 
 # ctx = get_context('spawn')  # Explicitly get a new context with 'spawn'
 if __name__ == "__main__":
     multiprocessing.freeze_support()
     multiprocessing.set_start_method('spawn', force=True)
-
-from whisper_infer.utils import args as cmd_line_args
-
-from whisper_infer.states import WorkerState
-from basic_worker import BasicWorker
 
 # curl -d "{\"name\" : \"server\"}" -H "Content-Type:application/json" -X POST http://localhost:3001/start_worker
 
@@ -23,7 +24,7 @@ class WorkerManager:
         self.session_id = None
         self.workers = {}
         # self.message_queues = {}
-        self._message_queue = multiprocessing.Queue()
+        self._message_queue : Queue = multiprocessing.Queue()
         self.on_log_cbs = {}
         self.on_success_cbs = {}
         self.on_failure_cbs = {}
@@ -42,8 +43,16 @@ class WorkerManager:
         if worker.context.state != required_state:
             raise RuntimeError(f"worker state mismatch {name} : state {worker.context.state.value}, expected {required_state.value}")
             
-    def add_worker(self, name, args_list, on_success : callable = None, on_failure : callable = None, on_log : callable = None, *args):
-        if len(self._running_workers()) >= self.max_count:
+    def add_worker(
+            self,
+            name : str,
+            args_list : List[str],
+            on_success : Callable | None = None,
+            on_failure : Callable | None = None,
+            on_log : Callable | None = None,
+            *args
+        ):
+        if len(self.workers) >= self.max_count:
             self._pending.append(PendingTask(name, args_list, on_success, on_failure))
             return 
         else:
@@ -56,10 +65,10 @@ class WorkerManager:
         # allow passing serializable objects references
         args_list = [str(part) for part in args_list]
         self.workers[name] = BasicWorker(name, args_list, debug = cmd_line_args.debug, dist = cmd_line_args.dist)
-        self.message_queues[name] = self.workers[name].print_queue
+        self.workers[name].print_queue = self._message_queue
         self.on_success_cbs[name] = on_success
         self.on_failure_cbs[name] = on_failure
-        self.compeltion_threads[name] = threading.Thread(
+        self.completion_threads[name] = threading.Thread(
             target=self.completion_loop, args = (name, ), daemon=True
         )
         self.workers[name].ctx.set_stopped("initial state")
@@ -79,12 +88,14 @@ class WorkerManager:
         worker.terminate()
         worker.state = WorkerState.STOPPED
         status_obj = self.format_status(name, f"{name} {worker.state.value}")
-        self.reset_worker_instance(name)
+        # self.reset_worker_instance(name)
         return status_obj
         
     def join_worker(self, name):
         self._assert_transition(name, WorkerState.RUNNING)
         worker = self.workers.get(name)
+        if not worker:
+            raise ValueError(f'join_worker() on non-existing worker. worker name is {name}')
         worker.join()
         if worker.is_alive():
             raise RuntimeError(f"{name} still alive after join")
@@ -114,7 +125,7 @@ class WorkerManager:
     def format_status(self, name, status_string):
         # Get the messages in the queue (non-blocking)
         messages = []
-        queue = self.message_queues[name]
+        queue = self._message_queue
         try:
             while not queue.empty():
                 messages.append(queue.get_nowait())
@@ -142,9 +153,9 @@ class WorkerManager:
         self._cleanup(name)
         if self._pending:
             task = self._pending.popleft()
-            self._start_worker(task.name, task.args_list, task.on_success, task.on_failure)
+            self.start_worker(task.name, task.args_list, task.on_success, task.on_failure)
 
-    def cleanup(self, name):
+    def _cleanup(self, name):
         self.completion_threads[name].stop()
         self.completion_threads[name].join()
 

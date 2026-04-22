@@ -1,10 +1,11 @@
-from  whisper_infer.events import LogEvent, Enveloppe, EventType
+from typing import List, Callable
+from whisper_infer.events import LogEvent, Enveloppe, EventType
 from whisper_infer.workers import WorkerManager
 from whisper_infer.session import SessionManager
 
 class StreamManager:
     def __init__(self, session : SessionManager):
-        self._sinks = []          # callables : CLI, WebSocket, fichier...
+        self._sinks : List[Callable] = []          # callables : CLI, WebSocket, fichier...
         self._orchestrator = session.orchestrateur
         self._session = session  # référence for on demand snapshot
 
@@ -15,7 +16,7 @@ class StreamManager:
         manager.subscribe_to_logs(self._on_event)
         self._orchestrator.subscribe(self._on_event)
 
-    def add_sink(self, fn: callable):
+    def add_sink(self, fn: Callable):
         self._sinks.append(fn)
 
     def _on_event(self, event: LogEvent):

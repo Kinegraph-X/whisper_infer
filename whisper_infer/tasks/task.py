@@ -1,16 +1,16 @@
 import time
-from typing import List
+from typing import List, Callable
 from dataclasses import dataclass
-from whisper_infer.tasks import TaskState, ExecutionStrategy, LocalProcessStrategy
-from whisper_infer.workers import WorkerContext, WorkerManager
-from task_snapshot import TaskSnapshot
+from whisper_infer.tasks import ExecutionStrategy, LocalProcessStrategy
+from whisper_infer.workers import WorkerManager
+from whisper_infer.utils import StrSerializable
 
 @dataclass
 class Task:
     name: str
     manager: WorkerManager      # mécanique d'exécution
-    cmd: List[str]
-    strategy : ExecutionStrategy = LocalProcessStrategy
-    early_exit_on_success : bool | callable = False
-    after_complete : callable | None = None
+    cmd: List[str | StrSerializable]
+    strategy : ExecutionStrategy = LocalProcessStrategy()
+    after_complete : Callable | None = None
+    early_exit_on_success : bool | Callable = False
     cancellable: bool = True

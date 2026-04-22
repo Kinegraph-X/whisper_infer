@@ -1,4 +1,7 @@
-from whisper_task import WhisperTask
-from task_manager import TaskManager
-from cancel_policy import CancelPolicy
-from task_snapshot import TaskSnapshot
+from .cancel_policy import CancelPolicy as CancelPolicy
+from .pending_task import PendingTask as PendingTask
+from .pipeline_task import PipelineTask as PipelineTask
+from .task_snapshot import TaskSnapshot as TaskSnapshot
+from .task_strategy import ExecutionStrategy as ExecutionStrategy, LocalProcessStrategy as LocalProcessStrategy, SubprocessStrategy as SubprocessStrategy, ExternalStrategy as ExternalStrategy
+from .task import Task as Task
+from .whisper_task import WhisperTask as WhisperTask
